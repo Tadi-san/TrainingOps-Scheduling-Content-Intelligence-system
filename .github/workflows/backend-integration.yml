@@ -1,0 +1,43 @@
+name: Backend Integration
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-integration.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-integration.yml'
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trainingops_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d trainingops_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/trainingops_test?sslmode=disable
+      GO_ENV: test
+      JWT_SECRET: test-signing-key-that-is-at-least-thirty-two-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - run: go test ./... -v
+      - run: go test -tags=integration ./... -v

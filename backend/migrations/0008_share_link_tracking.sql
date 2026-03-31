@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE document_share_links
+    ADD COLUMN IF NOT EXISTS download_count BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS last_download_at TIMESTAMPTZ NULL;
+
+COMMIT;

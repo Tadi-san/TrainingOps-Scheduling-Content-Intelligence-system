@@ -1,0 +1,50 @@
+services:
+  trainingops-db:
+    image: postgres:16-alpine
+    container_name: trainingops-db
+    environment:
+      POSTGRES_DB: trainingops
+      POSTGRES_USER: trainingops
+      POSTGRES_PASSWORD: trainingops
+    ports:
+      - "5432:5432"
+    volumes:
+      - trainingops-db-data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainingops -d trainingops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trainingops-api:
+    build:
+      context: ./backend
+    container_name: trainingops-api
+    environment:
+      APP_ENV: development
+      HTTP_ADDR: :8080
+      DATABASE_URL: postgres://trainingops:trainingops@trainingops-db:5432/trainingops?sslmode=disable
+      JWT_SECRET: dev-change-me-to-a-very-long-and-strong-secret-32-chars-at-least-1234567890
+      VAULT_MASTER_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      ADMIN_SEED_EMAIL: admin@example.com
+      ADMIN_SEED_PASSWORD: ChangeThisPassword123!A
+    ports:
+      - "8080:8080"
+    depends_on:
+      trainingops-db:
+        condition: service_healthy
+
+  trainingops-ui:
+    build:
+      context: ./frontend
+    container_name: trainingops-ui
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - trainingops-api
+
+volumes:
+  trainingops-db-data:
